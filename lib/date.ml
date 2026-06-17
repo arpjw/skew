@@ -46,9 +46,8 @@ let to_ymd n =
 let add_days t d = t + d
 let diff_days t1 t2 = t1 - t2
 
-let today () =
-  let t = Core_unix.gettimeofday () in
-  Int.of_float (t /. 86400.0)
+let today_provider : (unit -> t) ref = ref (fun () -> of_ymd 2025 1 1)
+let today () = !today_provider ()
 
 let to_string t =
   let y, m, d = to_ymd t in

@@ -1,4 +1,4 @@
 (executable
  (name main)
- (libraries skew_lib core)
+ (libraries skew_lib core core_unix)
  (preprocess (pps ppx_jane)))

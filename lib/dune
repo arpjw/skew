@@ -1,5 +1,5 @@
 (library
  (name skew_lib)
  (wrapped false)
- (libraries core core_unix)
+ (libraries core)
  (preprocess (pps ppx_jane)))

@@ -13,7 +13,7 @@ let () =
   Market.set_rate !market Currency.USD 0.05
 
 let () =
-  Js.export_all
+  Js.export "Skew"
     (object%js
       method setSpot underlying price =
         let u = Js.to_string underlying in
