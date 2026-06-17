@@ -275,7 +275,7 @@ let dispatch market line =
          | Error e -> Printf.printf "Parse error: %s\n" e
          | Ok c ->
            let report =
-             Greeks.compute_report ~market ~contract:c ~underlying
+             Greeks.compute_report ~n_paths:10_000 ~market ~contract:c ~underlying
            in
            print_endline (Print.greeks_report (Print.smart_contract c) report)
        end

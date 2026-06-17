@@ -184,9 +184,8 @@ type greeks_report = {
   stderr : float;
 } [@@deriving sexp]
 
-let compute_report ~market ~contract ~underlying =
-  let n_paths = 10_000 in
-  let config  = Pricer.MonteCarlo.default_config in
+let compute_report ~n_paths ~market ~contract ~underlying =
+  let config  = Pricer.MonteCarlo.{ default_config with n_paths } in
   let price, stderr =
     Pricer.MonteCarlo.price_with_stderr ~config ~market ~contract
   in

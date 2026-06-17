@@ -232,22 +232,50 @@
     </div>
   </div>
 
-  <script src="skew.js"></script>
   <script>
-    // CodeMirror setup
+    // ── Worker setup ────────────────────────────────────────────────────────
+    var worker = null;
+    var workerBusy = false;
+    var pendingReq = null;
+    var reqId = 0;
+
+    function initWorker() {
+      worker = new Worker('worker.js');
+      worker.onmessage = function(e) {
+        workerBusy = false;
+        applyResults(e.data);
+        if (pendingReq) {
+          var req = pendingReq;
+          pendingReq = null;
+          dispatch(req);
+        } else {
+          setRunning(false);
+        }
+      };
+      worker.onerror = function(err) {
+        workerBusy = false;
+        setRunning(false);
+        showError('Worker error: ' + (err.message || err));
+      };
+    }
+
+    function dispatch(req) {
+      workerBusy = true;
+      setRunning(true);
+      worker.postMessage(req);
+    }
+
+    // ── CodeMirror ──────────────────────────────────────────────────────────
     const cm = CodeMirror.fromTextArea(document.getElementById('editor'), {
       lineNumbers: true,
       theme: 'default',
       mode: 'text/plain',
       placeholder: 'call AAPL 150.0 2026-12-19',
-      extraKeys: {
-        'Cmd-Enter': run,
-        'Ctrl-Enter': run,
-      }
+      extraKeys: { 'Cmd-Enter': run, 'Ctrl-Enter': run }
     });
     cm.setValue('call AAPL 100.0 2027-06-17');
 
-    // Detect underlying from contract string (naive)
+    // ── Helpers ─────────────────────────────────────────────────────────────
     function detectUnderlying(expr) {
       const m = expr.match(/(?:call|put|acall|aput|forward)\s+(\S+)/i);
       return m ? m[1] : 'AAPL';
@@ -256,84 +284,93 @@
     function getMarket() {
       return {
         spot: parseFloat(document.getElementById('spot').value) || 100.0,
-        vol:  parseFloat(document.getElementById('vol').value)  / 100.0 || 0.20,
-        rate: parseFloat(document.getElementById('rate').value) / 100.0 || 0.05,
+        vol:  (parseFloat(document.getElementById('vol').value)  || 20.0) / 100.0,
+        rate: (parseFloat(document.getElementById('rate').value) || 5.0)  / 100.0,
       };
     }
 
-    function run() {
-      const expr = cm.getValue().trim();
-      if (!expr) return;
-      const underlying = detectUnderlying(expr);
-      const mkt = getMarket();
-
-      // Show loading
-      document.getElementById('out-check').textContent = '…';
-      document.getElementById('out-simplified').textContent = '…';
-      document.getElementById('out-price').innerHTML = '<span class="out-price-big out-muted">…</span>';
-      document.getElementById('out-lattice').textContent = '…';
-
-      // Try to use the compiled Skew JS bundle
-      try {
-        if (typeof Skew === 'undefined') throw new Error('Skew bundle not loaded');
-
-        Skew.setSpot(underlying, mkt.spot);
-        Skew.setVol(underlying, mkt.vol);
-        Skew.setRate('USD', mkt.rate);
-
-        const checkResult = Skew.check(expr);
-        const checkEl = document.getElementById('out-check');
-        if (checkResult.ok) {
-          checkEl.className = 'out-value out-valid';
-          checkEl.textContent = '✓ ' + checkResult.type;
-        } else {
-          checkEl.className = 'out-value out-error';
-          checkEl.textContent = '✗ ' + checkResult.error;
-        }
-
-        const simplResult = Skew.simplify(expr);
-        document.getElementById('out-simplified').textContent = simplResult.simplified;
-
-        const priceResult = Skew.price(expr);
+    function setRunning(on) {
+      const btn = document.getElementById('runBtn');
+      btn.disabled = on;
+      btn.textContent = on ? '…' : 'Run';
+      if (on) {
+        document.getElementById('out-check').textContent = '…';
+        document.getElementById('out-simplified').textContent = '…';
         document.getElementById('out-price').innerHTML =
-          `<span class="out-price-big">${priceResult.price.toFixed(4)}</span>` +
-          `<span class="out-price-stderr"> ±${priceResult.stderr.toFixed(4)}</span>`;
-
-        const latResult = Skew.lattice(expr);
-        document.getElementById('out-lattice').textContent = latResult.price.toFixed(4);
-
-        const gResult = Skew.greeks(expr, underlying);
-        document.getElementById('out-greeks').innerHTML =
-          `<tr><td>Delta</td><td>${gResult.delta.toFixed(4)}</td></tr>` +
-          `<tr><td>Vega</td><td>${gResult.vega.toFixed(4)}</td></tr>` +
-          `<tr><td>Theta</td><td>${(gResult.theta / 365).toFixed(4)} /day</td></tr>` +
-          `<tr><td>Rho</td><td>${(gResult.rho * 0.0001).toFixed(6)} /bp</td></tr>`;
-
-      } catch (e) {
-        // Fallback: show placeholder values
-        document.getElementById('out-check').className = 'out-value out-muted';
-        document.getElementById('out-check').textContent = '(Skew bundle not loaded — run dune build web/main_js.bc.js and copy to web/skew.js)';
-        document.getElementById('out-simplified').textContent = expr;
-        document.getElementById('out-price').innerHTML = '<span class="out-price-big out-muted">—</span>';
-        document.getElementById('out-lattice').textContent = '—';
+          '<span class="out-price-big out-muted">…</span>';
+        document.getElementById('out-lattice').textContent = '…';
       }
     }
 
-    // Debounce on change
+    function showError(msg) {
+      document.getElementById('out-check').className = 'out-value out-error';
+      document.getElementById('out-check').textContent = '✗ ' + msg;
+    }
+
+    function applyResults(data) {
+      if (!data.ok) { showError(data.error); return; }
+
+      const checkEl = document.getElementById('out-check');
+      if (data.check.ok) {
+        checkEl.className = 'out-value out-valid';
+        checkEl.textContent = '✓ ' + data.check.type;
+      } else {
+        checkEl.className = 'out-value out-error';
+        checkEl.textContent = '✗ ' + data.check.error;
+      }
+
+      document.getElementById('out-simplified').textContent = data.simplified.simplified;
+
+      document.getElementById('out-price').innerHTML =
+        '<span class="out-price-big">' + data.price.price.toFixed(4) + '</span>' +
+        '<span class="out-price-stderr"> ±' + data.price.stderr.toFixed(4) + '</span>';
+
+      document.getElementById('out-lattice').textContent =
+        data.lattice.price.toFixed(4);
+
+      const g = data.greeks;
+      document.getElementById('out-greeks').innerHTML =
+        '<tr><td>Delta</td><td>' + g.delta.toFixed(4) + '</td></tr>' +
+        '<tr><td>Vega</td><td>' + g.vega.toFixed(4) + '</td></tr>' +
+        '<tr><td>Theta</td><td>' + (g.theta / 365).toFixed(4) + ' /day</td></tr>' +
+        '<tr><td>Rho</td><td>' + (g.rho * 0.0001).toFixed(6) + ' /bp</td></tr>';
+    }
+
+    // ── Run ─────────────────────────────────────────────────────────────────
+    function run() {
+      const expr = cm.getValue().trim();
+      if (!expr) return;
+      const req = {
+        id: ++reqId,
+        expr: expr,
+        underlying: detectUnderlying(expr),
+        spot: getMarket().spot,
+        vol:  getMarket().vol,
+        rate: getMarket().rate,
+      };
+      if (workerBusy) {
+        pendingReq = req;
+      } else {
+        dispatch(req);
+      }
+    }
+
+    // ── Event wiring ─────────────────────────────────────────────────────────
     let debounceTimer;
     cm.on('change', () => {
       clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(run, 300);
+      debounceTimer = setTimeout(run, 400);
     });
 
-    ['spot', 'vol', 'rate'].forEach(id => {
-      document.getElementById(id).addEventListener('change', run);
-    });
+    ['spot', 'vol', 'rate'].forEach(id =>
+      document.getElementById(id).addEventListener('change', run)
+    );
 
     document.getElementById('runBtn').addEventListener('click', run);
 
-    // Initial run
-    setTimeout(run, 100);
+    // ── Boot ─────────────────────────────────────────────────────────────────
+    initWorker();
+    setTimeout(run, 200);
   </script>
 </body>
 </html>

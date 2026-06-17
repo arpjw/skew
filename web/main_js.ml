@@ -9,6 +9,9 @@ open Core
    may not be available in js_of_ocaml *)
 let market = ref (Market.create ~valuation_date:(Skew_date.of_ymd 2025 1 1))
 
+(* Reduced config for interactive web use: fewer paths and steps for speed *)
+let web_mc_config = Pricer.MonteCarlo.{ default_config with n_paths = 1000; n_steps = 52 }
+
 let () =
   Market.set_rate !market Currency.USD 0.05
 
@@ -75,8 +78,7 @@ let () =
              val stderr = Js.number_of_float 0.0
            end
          | Ok c ->
-           let config = Pricer.MonteCarlo.default_config in
-           let p, se = Pricer.MonteCarlo.price_with_stderr ~config ~market:!market ~contract:c in
+           let p, se = Pricer.MonteCarlo.price_with_stderr ~config:web_mc_config ~market:!market ~contract:c in
            object%js
              val price = Js.number_of_float p
              val stderr = Js.number_of_float se
@@ -106,7 +108,7 @@ let () =
              val stderr = Js.number_of_float 0.0
            end
          | Ok c ->
-           let r = Greeks.compute_report ~market:!market ~contract:c ~underlying in
+           let r = Greeks.compute_report ~n_paths:1000 ~market:!market ~contract:c ~underlying in
            object%js
              val price  = Js.number_of_float r.Greeks.price
              val delta  = Js.number_of_float r.Greeks.delta
