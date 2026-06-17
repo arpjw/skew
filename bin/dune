@@ -1,0 +1,4 @@
+(executable
+ (name main)
+ (libraries skew_lib core)
+ (preprocess (pps ppx_jane)))

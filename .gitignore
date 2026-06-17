@@ -1,0 +1,13 @@
+_build/
+.opam/
+*.byte
+*.native
+*.bc
+*.cmi
+*.cmo
+*.cmx
+*.o
+*.a
+.DS_Store
+CLAUDE.md
+web/skew.js

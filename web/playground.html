@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Skew — Playground</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      background: #0a0a0a;
+      color: #e8e8e8;
+      font-family: 'SF Mono', 'Fira Mono', 'Menlo', 'Consolas', monospace;
+      font-size: 13px;
+      overflow: hidden;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 40px;
+      padding: 0 16px;
+      background: #111111;
+      border-bottom: 1px solid #222222;
+      flex-shrink: 0;
+    }
+    .header-left a {
+      color: #888888;
+      text-decoration: none;
+      font-size: 13px;
+    }
+    .header-left a:hover { color: #ccc; }
+    .header-right a {
+      color: #555555;
+      text-decoration: none;
+      font-size: 12px;
+    }
+    .header-right a:hover { color: #888; }
+
+    /* Main layout */
+    .main {
+      display: flex;
+      height: calc(100vh - 40px);
+    }
+
+    /* Left pane */
+    .pane-left {
+      width: 50%;
+      display: flex;
+      flex-direction: column;
+      background: #0f0f0f;
+      border-right: 1px solid #222222;
+    }
+    .editor-wrap {
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+    }
+    .CodeMirror {
+      height: 100% !important;
+      background: #0f0f0f !important;
+      color: #e8e8e8 !important;
+      font-family: 'SF Mono', 'Fira Mono', 'Menlo', monospace !important;
+      font-size: 13px !important;
+      line-height: 1.6 !important;
+    }
+    .CodeMirror-scroll { background: #0f0f0f !important; }
+    .CodeMirror-gutters { background: #0f0f0f !important; border-right: 1px solid #1e1e1e !important; }
+    .CodeMirror-linenumber { color: #333 !important; }
+    .CodeMirror-cursor { border-left: 1px solid #888 !important; }
+    .CodeMirror-selected { background: #1e2a3a !important; }
+    .cm-placeholder { color: #444 !important; }
+
+    /* Market controls */
+    .market-controls {
+      padding: 12px 16px;
+      border-top: 1px solid #1e1e1e;
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .market-controls label {
+      color: #555;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-right: 4px;
+    }
+    .market-controls input {
+      width: 72px;
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      color: #e8e8e8;
+      font-family: inherit;
+      font-size: 13px;
+      padding: 4px 8px;
+      outline: none;
+      border-radius: 2px;
+    }
+    .market-controls input:focus { border-color: #444; }
+    .market-field { display: flex; align-items: center; }
+
+    /* Run bar */
+    .run-bar {
+      padding: 10px 16px;
+      border-top: 1px solid #1e1e1e;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .btn-run {
+      background: #f0f0f0;
+      color: #0a0a0a;
+      border: none;
+      font-family: inherit;
+      font-size: 13px;
+      padding: 6px 20px;
+      cursor: pointer;
+      border-radius: 2px;
+    }
+    .btn-run:hover { background: #ddd; }
+    .shortcut-hint { color: #444; font-size: 11px; }
+
+    /* Right pane */
+    .pane-right {
+      width: 50%;
+      overflow-y: auto;
+      background: #0f0f0f;
+      padding: 20px 24px;
+    }
+
+    /* Output sections */
+    .out-section { margin-bottom: 24px; }
+    .out-label {
+      color: #555555;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 6px;
+    }
+    .out-value { font-size: 13px; color: #e8e8e8; }
+    .out-valid { color: #a8ff78; }
+    .out-error { color: #ff6b6b; }
+    .out-muted { color: #555; }
+    .out-price-big {
+      font-size: 28px;
+      color: #e8e8e8;
+      letter-spacing: -0.02em;
+    }
+    .out-price-stderr { color: #555; font-size: 16px; margin-left: 6px; }
+
+    /* Greeks table */
+    .greeks-table { width: 100%; border-collapse: collapse; }
+    .greeks-table td { padding: 4px 0; }
+    .greeks-table td:first-child { color: #555555; width: 80px; }
+    .greeks-table td:last-child { color: #e8e8e8; }
+
+    .divider { height: 1px; background: #1e1e1e; margin: 20px 0; }
+
+    /* Spinner */
+    .spinner { color: #333; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-left"><a href="index.html">← Skew</a></div>
+    <div class="header-right"><a href="https://github.com/arpjw/skew" target="_blank">github.com/arpjw/skew</a></div>
+  </div>
+
+  <div class="main">
+    <!-- Left pane -->
+    <div class="pane-left">
+      <div class="editor-wrap">
+        <textarea id="editor"></textarea>
+      </div>
+      <div class="market-controls">
+        <div class="market-field">
+          <label>Spot</label>
+          <input type="number" id="spot" value="100.0" step="1">
+        </div>
+        <div class="market-field">
+          <label>Vol %</label>
+          <input type="number" id="vol" value="20.0" step="1">
+        </div>
+        <div class="market-field">
+          <label>Rate %</label>
+          <input type="number" id="rate" value="5.0" step="0.25">
+        </div>
+      </div>
+      <div class="run-bar">
+        <button class="btn-run" id="runBtn">Run</button>
+        <span class="shortcut-hint">⌘ Enter</span>
+      </div>
+    </div>
+
+    <!-- Right pane -->
+    <div class="pane-right" id="output">
+      <div class="out-section">
+        <div class="out-label">Type Check</div>
+        <div class="out-value out-muted" id="out-check">—</div>
+      </div>
+      <div class="out-section">
+        <div class="out-label">Simplified Form</div>
+        <div class="out-value out-muted" id="out-simplified">—</div>
+      </div>
+      <div class="divider"></div>
+      <div class="out-section">
+        <div class="out-label">MC Price</div>
+        <div id="out-price">
+          <span class="out-price-big out-muted">—</span>
+        </div>
+      </div>
+      <div class="out-section">
+        <div class="out-label">Lattice Price</div>
+        <div class="out-value out-muted" id="out-lattice">—</div>
+      </div>
+      <div class="divider"></div>
+      <div class="out-section">
+        <div class="out-label">Greeks</div>
+        <table class="greeks-table" id="out-greeks">
+          <tr><td>Delta</td><td class="out-muted">—</td></tr>
+          <tr><td>Vega</td><td class="out-muted">—</td></tr>
+          <tr><td>Theta</td><td class="out-muted">—</td></tr>
+          <tr><td>Rho</td><td class="out-muted">—</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script src="skew.js"></script>
+  <script>
+    // CodeMirror setup
+    const cm = CodeMirror.fromTextArea(document.getElementById('editor'), {
+      lineNumbers: true,
+      theme: 'default',
+      mode: 'text/plain',
+      placeholder: 'call AAPL 150.0 2026-12-19',
+      extraKeys: {
+        'Cmd-Enter': run,
+        'Ctrl-Enter': run,
+      }
+    });
+    cm.setValue('call AAPL 100.0 2027-06-17');
+
+    // Detect underlying from contract string (naive)
+    function detectUnderlying(expr) {
+      const m = expr.match(/(?:call|put|acall|aput|forward)\s+(\S+)/i);
+      return m ? m[1] : 'AAPL';
+    }
+
+    function getMarket() {
+      return {
+        spot: parseFloat(document.getElementById('spot').value) || 100.0,
+        vol:  parseFloat(document.getElementById('vol').value)  / 100.0 || 0.20,
+        rate: parseFloat(document.getElementById('rate').value) / 100.0 || 0.05,
+      };
+    }
+
+    function run() {
+      const expr = cm.getValue().trim();
+      if (!expr) return;
+      const underlying = detectUnderlying(expr);
+      const mkt = getMarket();
+
+      // Show loading
+      document.getElementById('out-check').textContent = '…';
+      document.getElementById('out-simplified').textContent = '…';
+      document.getElementById('out-price').innerHTML = '<span class="out-price-big out-muted">…</span>';
+      document.getElementById('out-lattice').textContent = '…';
+
+      // Try to use the compiled Skew JS bundle
+      try {
+        if (typeof Skew === 'undefined') throw new Error('Skew bundle not loaded');
+
+        Skew.setSpot(underlying, mkt.spot);
+        Skew.setVol(underlying, mkt.vol);
+        Skew.setRate('USD', mkt.rate);
+
+        const checkResult = Skew.check(expr);
+        const checkEl = document.getElementById('out-check');
+        if (checkResult.ok) {
+          checkEl.className = 'out-value out-valid';
+          checkEl.textContent = '✓ ' + checkResult.type;
+        } else {
+          checkEl.className = 'out-value out-error';
+          checkEl.textContent = '✗ ' + checkResult.error;
+        }
+
+        const simplResult = Skew.simplify(expr);
+        document.getElementById('out-simplified').textContent = simplResult.simplified;
+
+        const priceResult = Skew.price(expr);
+        document.getElementById('out-price').innerHTML =
+          `<span class="out-price-big">${priceResult.price.toFixed(4)}</span>` +
+          `<span class="out-price-stderr"> ±${priceResult.stderr.toFixed(4)}</span>`;
+
+        const latResult = Skew.lattice(expr);
+        document.getElementById('out-lattice').textContent = latResult.price.toFixed(4);
+
+        const gResult = Skew.greeks(expr, underlying);
+        document.getElementById('out-greeks').innerHTML =
+          `<tr><td>Delta</td><td>${gResult.delta.toFixed(4)}</td></tr>` +
+          `<tr><td>Vega</td><td>${gResult.vega.toFixed(4)}</td></tr>` +
+          `<tr><td>Theta</td><td>${(gResult.theta / 365).toFixed(4)} /day</td></tr>` +
+          `<tr><td>Rho</td><td>${(gResult.rho * 0.0001).toFixed(6)} /bp</td></tr>`;
+
+      } catch (e) {
+        // Fallback: show placeholder values
+        document.getElementById('out-check').className = 'out-value out-muted';
+        document.getElementById('out-check').textContent = '(Skew bundle not loaded — run dune build web/main_js.bc.js and copy to web/skew.js)';
+        document.getElementById('out-simplified').textContent = expr;
+        document.getElementById('out-price').innerHTML = '<span class="out-price-big out-muted">—</span>';
+        document.getElementById('out-lattice').textContent = '—';
+      }
+    }
+
+    // Debounce on change
+    let debounceTimer;
+    cm.on('change', () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(run, 300);
+    });
+
+    ['spot', 'vol', 'rate'].forEach(id => {
+      document.getElementById(id).addEventListener('change', run);
+    });
+
+    document.getElementById('runBtn').addEventListener('click', run);
+
+    // Initial run
+    setTimeout(run, 100);
+  </script>
+</body>
+</html>

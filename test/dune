@@ -1,0 +1,4 @@
+(executable
+ (name test_suite)
+ (libraries skew_lib alcotest core)
+ (preprocess (pps ppx_jane)))

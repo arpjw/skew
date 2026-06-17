@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Skew</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      background: #0a0a0a;
+      color: #f0f0f0;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    .hero {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      text-align: center;
+      padding: 0 24px;
+    }
+    .title {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 72px;
+      font-weight: 400;
+      color: #f0f0f0;
+      letter-spacing: -0.02em;
+      line-height: 1;
+    }
+    .subtitle {
+      font-family: 'SF Mono', 'Fira Mono', 'Menlo', monospace;
+      font-size: 14px;
+      color: #888888;
+      margin-top: 16px;
+      letter-spacing: 0;
+    }
+    .buttons {
+      display: flex;
+      gap: 12px;
+      margin-top: 40px;
+    }
+    .btn {
+      display: inline-block;
+      padding: 10px 24px;
+      font-family: 'SF Mono', 'Fira Mono', 'Menlo', monospace;
+      font-size: 13px;
+      text-decoration: none;
+      cursor: pointer;
+      border-radius: 2px;
+      transition: none;
+    }
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid #444444;
+      color: #aaaaaa;
+    }
+    .btn-ghost:hover { border-color: #666; color: #ccc; }
+    .btn-filled {
+      background: #f0f0f0;
+      border: 1px solid #f0f0f0;
+      color: #0a0a0a;
+    }
+    .btn-filled:hover { background: #ddd; border-color: #ddd; }
+  </style>
+</head>
+<body>
+  <div class="hero">
+    <h1 class="title">Skew</h1>
+    <p class="subtitle">A typed DSL for compositional financial contracts in OCaml</p>
+    <div class="buttons">
+      <a class="btn btn-ghost" href="https://github.com/arpjw/skew" target="_blank" rel="noopener">Source</a>
+      <a class="btn btn-filled" href="playground.html">Explore</a>
+    </div>
+  </div>
+</body>
+</html>
